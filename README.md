@@ -73,3 +73,17 @@ If using the input validation utility from the runpod python package, create a `
 ## 🔗 | Links
 
 🐳 [Docker Container](https://hub.docker.com/r/runpod/serverless-hello-world)
+
+
+
+## Notes
+
+From the root directory, build the dockler image using the following command:
+```bash
+docker build -f conf/base/runpod_tts/Dockerfile . --tag anghelion/xtts_runpod:latest
+```
+
+Then, pull image to the dockerhub:
+```bash
+docker push anghelion/xtts_runpod:latest
+```
