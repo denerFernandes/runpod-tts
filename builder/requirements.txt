@@ -7,6 +7,6 @@
 
 runpod #==1.6.0
 TTS
-torch #==2.1.2
+torch==2.2.1
 # torchvision==0.16.2
-torchaudio #==2.1.2
+torchaudio==2.1.1
