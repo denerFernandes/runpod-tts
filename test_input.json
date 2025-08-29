@@ -3,7 +3,7 @@
     "text": "Olá, este é um teste de síntese de voz.",
     "script_id": "test_script_123",
     "audio_id": "test_audio_456",
-    "reference_audio": "BASE64_DO_AUDIO_DE_REFERENCIA",
+    "reference_audio_url": "https://exemplo.com/audio_referencia.wav",
     "language": "pt",
     "output_format": "mp3",
     "temperature": 0.75,

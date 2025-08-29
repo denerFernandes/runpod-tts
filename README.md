@@ -22,7 +22,7 @@ O serviço espera receber um JSON com os seguintes campos:
     "text": "Texto a ser convertido em áudio",
     "script_id": "identificador_do_script",
     "audio_id": "identificador_do_audio",
-    "reference_audio": "BASE64_DO_AUDIO_DE_REFERENCIA",
+    "reference_audio_url": "https://exemplo.com/audio_referencia.wav",
     "language": "pt",
     "output_format": "mp3",
     "temperature": 0.75,
@@ -36,7 +36,9 @@ O serviço espera receber um JSON com os seguintes campos:
 - `text`: Texto a ser convertido em áudio
 - `script_id`: Identificador do script (usado para organizar os arquivos no S3)
 - `audio_id`: Identificador do áudio (usado para nomear o arquivo no S3)
-- `reference_audio`: Áudio de referência em base64 (usado para clonar a voz)
+- Um dos seguintes parâmetros para o áudio de referência:
+  - `reference_audio`: Áudio de referência em base64 (usado para clonar a voz)
+  - `reference_audio_url`: URL do áudio de referência (usado para clonar a voz)
 
 ### Parâmetros opcionais
 

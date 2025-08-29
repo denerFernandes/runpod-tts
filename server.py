@@ -129,6 +129,23 @@ def cleanup_temp_files(file_paths: list):
                 logger.warning(f"⚠️ Falha ao remover {path}: {e}")
 
 
+def download_from_url(url: str, output_path: str) -> bool:
+    """Baixa um arquivo de uma URL e salva no caminho especificado"""
+    try:
+        response = requests.get(url, stream=True)
+        response.raise_for_status()  # Lança exceção para códigos de erro HTTP
+        
+        with open(output_path, 'wb') as file:
+            for chunk in response.iter_content(chunk_size=8192):
+                file.write(chunk)
+        
+        logger.info(f"✅ Arquivo baixado com sucesso de: {url}")
+        return True
+    except Exception as e:
+        logger.error(f"❌ Erro ao baixar arquivo de {url}: {e}")
+        return False
+
+
 def upload_to_s3(file_path: str, script_id: str, audio_id: str, file_extension: str) -> str:
     """Faz upload do arquivo para o S3 da Tebi e retorna a URL"""
     try:
@@ -208,7 +225,7 @@ async def handler(job) -> Dict[str, Any]:
     text = job_input.get('text')
     script_id = job_input.get('script_id')
     audio_id = job_input.get('audio_id')
-    reference_audio_base64 = job_input.get('reference_audio')  # Base64 do áudio de referência
+    reference_audio_url = job_input.get('reference_audio_url')  # URL do áudio de referência
     language = job_input.get('language', 'pt')
     output_format = job_input.get('output_format', 'wav').lower()
     temperature = job_input.get('temperature', 0.75)
@@ -239,10 +256,10 @@ async def handler(job) -> Dict[str, Any]:
             "status_code": 400
         }
     
-    if not reference_audio_base64:
+    if not reference_audio_url:
         return {
             "error": True,
-            "message": "Áudio de referência não fornecido",
+            "message": "URL do áudio de referência não fornecida",
             "status_code": 400
         }
     
@@ -277,19 +294,23 @@ async def handler(job) -> Dict[str, Any]:
         logger.info(f"🎵 TTS {output_format.upper()} - Texto: {len(text)} chars, Idioma: {language}")
         logger.info(f"🎛️ Parâmetros - Temp: {temperature}, Speed: {speed}, Top-p: {top_p}")
         
-        # 1. Decodificar e salvar áudio de referência
-        try:
-            reference_audio_bytes = base64.b64decode(reference_audio_base64)
-        except Exception as e:
-            return {
-                "error": True,
-                "message": f"Erro ao decodificar áudio de referência: {str(e)}",
-                "status_code": 400
-            }
-        
+        # 1. Obter e salvar áudio de referência da URL
         with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as ref_file:
-            ref_file.write(reference_audio_bytes)
             ref_path = ref_file.name
+            
+            try:
+                if not download_from_url(reference_audio_url, ref_path):
+                    return {
+                        "error": True,
+                        "message": f"Erro ao baixar áudio de referência da URL: {reference_audio_url}",
+                        "status_code": 400
+                    }
+            except Exception as e:
+                return {
+                    "error": True,
+                    "message": f"Erro ao baixar áudio de referência da URL: {str(e)}",
+                    "status_code": 400
+                }
         
         # 2. Pré-processar para 16kHz mono (essencial para XTTS v2)
         with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as processed_ref_file:
