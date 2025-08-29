@@ -148,6 +148,23 @@ def clean_text_for_portuguese_tts(text):
 
 
 async def handler(job) -> Dict[str, Any]:
+    global tts_model
+    
+    # Carregar modelo se ainda não foi carregado (lazy loading)
+    if tts_model is None:
+        logger.info("🔄 Carregando modelo XTTS v2 sob demanda...")
+        try:
+            tts_model = TTS(model_name="tts_models/multilingual/multi-dataset/xtts_v2", 
+                           gpu=torch.cuda.is_available())
+            logger.info("✅ Modelo XTTS v2 carregado com sucesso!")
+        except Exception as e:
+            logger.error(f"❌ Erro ao carregar modelo: {e}")
+            return {
+                "error": True,
+                "message": f"Falha ao carregar modelo TTS: {str(e)}",
+                "status_code": 503
+            }
+    
     job_input = job['input']
     
     # Extrair parâmetros do input
@@ -362,12 +379,18 @@ def load_tts_model():
         logger.error(f"❌ Erro ao carregar modelo: {e}")
         return False
 
-if __name__ == "__main__":
-    logger.info("🚀 Iniciando servidor RunPod...")
+def init():
+    global tts_model
+    logger.info("🚀 Inicializando servidor RunPod...")
     
-    # Carregar modelo antes de iniciar o handler
     if not load_tts_model():
         logger.error("❌ Falha crítica: não foi possível carregar o modelo")
-        exit(1)
+        raise Exception("Falha ao carregar modelo TTS")
     
-    runpod.serverless.start({"handler": handler})
+    logger.info("✅ Inicialização completa!")
+
+# Iniciar com função de init
+runpod.serverless.start({
+    "handler": handler,
+    "init": init
+})
