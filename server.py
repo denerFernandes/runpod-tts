@@ -381,7 +381,7 @@ def load_tts_model():
 
 def init():
     global tts_model
-    logger.info("🚀 Inicializando servidor RunPod...")
+    logger.info("🚀 Inicializando servidor RunPod... ")
     
     if not load_tts_model():
         logger.error("❌ Falha crítica: não foi possível carregar o modelo")
