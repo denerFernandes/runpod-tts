@@ -21,6 +21,7 @@ import subprocess
 import runpod
 import base64
 import boto3
+import requests
 from typing import Dict, Any
 from botocore.client import Config
 
