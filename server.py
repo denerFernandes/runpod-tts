@@ -350,4 +350,24 @@ async def handler(job) -> Dict[str, Any]:
         # Limpar arquivos temporários
         cleanup_temp_files([ref_path, processed_ref_path, output_path, final_path])
 
-runpod.serverless.start({"handler": handler})
+def load_tts_model():
+    global tts_model
+    try:
+        logger.info("🔄 Carregando modelo XTTS v2...")
+        tts_model = TTS(model_name="tts_models/multilingual/multi-dataset/xtts_v2", 
+                       gpu=torch.cuda.is_available())
+        logger.info("✅ Modelo XTTS v2 carregado com sucesso!")
+        return True
+    except Exception as e:
+        logger.error(f"❌ Erro ao carregar modelo: {e}")
+        return False
+
+if __name__ == "__main__":
+    logger.info("🚀 Iniciando servidor RunPod...")
+    
+    # Carregar modelo antes de iniciar o handler
+    if not load_tts_model():
+        logger.error("❌ Falha crítica: não foi possível carregar o modelo")
+        exit(1)
+    
+    runpod.serverless.start({"handler": handler})
