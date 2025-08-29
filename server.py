@@ -20,7 +20,9 @@ from pydub import AudioSegment
 import subprocess
 import runpod
 import base64
+import boto3
 from typing import Dict, Any
+from botocore.client import Config
 
 # Configurar logging
 logging.basicConfig(
@@ -127,6 +129,41 @@ def cleanup_temp_files(file_paths: list):
                 logger.warning(f"⚠️ Falha ao remover {path}: {e}")
 
 
+def upload_to_s3(file_path: str, script_id: str, audio_id: str, file_extension: str) -> str:
+    """Faz upload do arquivo para o S3 da Tebi e retorna a URL"""
+    try:
+        # Configurar cliente S3 para Tebi
+        s3_client = boto3.client(
+            's3',
+            endpoint_url='https://s3.tebi.io',
+            aws_access_key_id=os.environ.get('TEBI_ACCESS_KEY'),
+            aws_secret_access_key=os.environ.get('TEBI_SECRET_KEY'),
+            config=Config(signature_version='s3v4')
+        )
+        
+        # Nome do bucket
+        bucket_name = os.environ.get('TEBI_BUCKET_NAME')
+        
+        # Caminho do objeto no S3
+        object_key = f"{script_id}/audio/{audio_id}.{file_extension}"
+        
+        # Upload do arquivo
+        s3_client.upload_file(
+            Filename=file_path,
+            Bucket=bucket_name,
+            Key=object_key,
+            ExtraArgs={'ACL': 'public-read'}
+        )
+        
+        # Retornar URL do objeto
+        s3_url = f"s3.bucket/{script_id}/audio/{audio_id}.{file_extension}"
+        logger.info(f"✅ Arquivo enviado para S3: {s3_url}")
+        return s3_url
+    except Exception as e:
+        logger.error(f"❌ Erro ao fazer upload para S3: {e}")
+        raise e
+
+
 def clean_text_for_portuguese_tts(text):
     from TTS.tts.utils.text.cleaners import portuguese_cleaners
     import re
@@ -169,12 +206,14 @@ async def handler(job) -> Dict[str, Any]:
     
     # Extrair parâmetros do input
     text = job_input.get('text')
+    script_id = job_input.get('script_id')
+    audio_id = job_input.get('audio_id')
     reference_audio_base64 = job_input.get('reference_audio')  # Base64 do áudio de referência
     language = job_input.get('language', 'pt')
     output_format = job_input.get('output_format', 'wav').lower()
     temperature = job_input.get('temperature', 0.75)
     length_penalty = job_input.get('length_penalty', 1.0)
-    repetition_penalty = job_input.get('repetition_penalty', 5.0)
+    repetition_penalty = job_input.get('repetition_penalty', 2.0)
     top_k = job_input.get('top_k', 50)
     top_p = job_input.get('top_p', 0.85)
     speed = job_input.get('speed', 1.0)
@@ -204,6 +243,20 @@ async def handler(job) -> Dict[str, Any]:
         return {
             "error": True,
             "message": "Áudio de referência não fornecido",
+            "status_code": 400
+        }
+    
+    if not script_id:
+        return {
+            "error": True,
+            "message": "script_id não fornecido",
+            "status_code": 400
+        }
+    
+    if not audio_id:
+        return {
+            "error": True,
+            "message": "audio_id não fornecido",
             "status_code": 400
         }
     
@@ -297,14 +350,18 @@ async def handler(job) -> Dict[str, Any]:
                 "status_code": 500
             }
         
-        # 5. Converter áudio para base64
+        # 5. Fazer upload do áudio para o S3 da Tebi
         try:
-            with open(final_path, 'rb') as audio_file:
-                audio_base64 = base64.b64encode(audio_file.read()).decode('utf-8')
+            s3_url = upload_to_s3(
+                file_path=final_path,
+                script_id=script_id,
+                audio_id=audio_id,
+                file_extension=file_extension
+            )
         except Exception as e:
             return {
                 "error": True,
-                "message": f"Erro ao converter áudio para base64: {str(e)}",
+                "message": f"Erro ao fazer upload do áudio para S3: {str(e)}",
                 "status_code": 500
             }
         
@@ -329,10 +386,10 @@ async def handler(job) -> Dict[str, Any]:
             final_sr = 44100
             logger.warning(f"⚠️ Erro ao obter metadados do áudio: {str(e)}")
         
-        # Retornar resposta JSON com áudio em base64
+        # Retornar resposta JSON com URL do S3
         return {
             "error": False,
-            "audio_base64": audio_base64,
+            "audio_url": s3_url,
             "metadata": {
                 "format": output_format.upper(),
                 "generation_time": round(generation_time, 2),

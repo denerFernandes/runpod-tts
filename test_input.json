@@ -1,5 +1,12 @@
 {
   "input": {
-    "name": "John Doe"
+    "text": "Olá, este é um teste de síntese de voz.",
+    "script_id": "test_script_123",
+    "audio_id": "test_audio_456",
+    "reference_audio": "BASE64_DO_AUDIO_DE_REFERENCIA",
+    "language": "pt",
+    "output_format": "mp3",
+    "temperature": 0.75,
+    "speed": 1.0
   }
 }
