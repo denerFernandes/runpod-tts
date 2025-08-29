@@ -1,7 +1,6 @@
-# docker/requirements.txt
+#requirements.txt
 coqui-tts==0.27.0
-transformers==4.46.2
-fastapi==0.116.1
+transformers>=4.33.0
 uvicorn[standard]==0.35.0
 python-multipart==0.0.20
 torch>=2.0.0
