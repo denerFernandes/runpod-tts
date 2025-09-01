@@ -175,7 +175,7 @@ def upload_to_s3(file_path: str, script_id: str, audio_id: str, file_extension: 
         
         # Retornar URL do objeto
         s3_url = f"https://s3.tebi.io/{script_id}/audio/{audio_id}.{file_extension}"
-        logger.info(f"✅ Arquivo enviado para S3: {s3_url}")
+        logger.info(f"✅ Arquivo enviado para S3 : {s3_url}")
         return s3_url
     except Exception as e:
         logger.error(f"❌ Erro ao fazer upload para S3: {e}")
